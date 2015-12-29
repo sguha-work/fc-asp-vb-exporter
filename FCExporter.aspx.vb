@@ -1,4 +1,3 @@
-
 '*
 ' *
 ' * FusionCharts Exporter is an ASP.NET C# script that handles 
@@ -467,7 +466,7 @@ Public Partial Class FCExporter
             Dim imageNameArray As String() = match.Value.Split("/"C)
             rawImageDataArray.Add(getImageData(data, imageNameArray(imageNameArray.Length - 1)))
         Next
-        For index As var = 0 To rawImageDataArray.Count - 1
+        For index As Long = 0 To rawImageDataArray.Count - 1
             svgData = svgData.Replace(hrefArray(index), rawImageDataArray(index))
         Next
 
