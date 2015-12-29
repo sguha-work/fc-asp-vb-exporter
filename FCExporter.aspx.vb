@@ -1271,9 +1271,9 @@ Public Class FCJSPDFGenerator
         'OBJECT 3 : Page Tree (reference to pages of the catalogue)
         strTmpObj = "3 0 obj" & vbLf & "<<  /Type /Pages /Kids ["
         For i As Integer = 0 To numPages - 1
-            strTmpObj += (((i + 1) * 3) + 1) + " 0 R" & vbLf
+            strTmpObj += Convert.ToString(((i + 1) * 3) + 1) + " 0 R" & vbLf
         Next
-        strTmpObj += "] /Count " + numPages + " >>" & vbLf & "endobj" & vbLf
+        strTmpObj += "] /Count " + Convert.ToString(numPages) + " >>" & vbLf & "endobj" & vbLf
 
         xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
         'refenrece to obj 3
@@ -1284,7 +1284,7 @@ Public Class FCJSPDFGenerator
         Dim iHeight As String = Me._height
 
         'OBJECT 4..7..10..n : Page config
-        strTmpObj = (Convert.ToString((Convert.ToString((((itr + 2) * 3) - 2) + " 0 obj" & vbLf & "<<" & vbLf & "/Type /Page /Parent 3 0 R " & vbLf & "/MediaBox [ 0 0 ") & iWidth) + " ") & iHeight) + " ]" & vbLf & "/Resources <<" & vbLf & "/ProcSet [ /PDF ]" & vbLf & "/XObject <</R" + (itr + 1) + " " + ((itr + 2) * 3) + " 0 R>>" & vbLf & ">>" & vbLf & "/Contents [ " + (((itr + 2) * 3) - 1) + " 0 R ]" & vbLf & ">>" & vbLf & "endobj" & vbLf
+        strTmpObj = (((itr + 2) * 3) - 2).ToString() + " 0 obj" + vbLf + "<<" + vbLf + "/Type /Page /Parent 3 0 R " + vbLf + "/MediaBox [ 0 0 " + iWidth.ToString() + " " + iHeight.ToString() + " ]" + vbLf + "/Resources <<" + vbLf + "/ProcSet [ /PDF ]" + vbLf + "/XObject <</R" + (itr + 1).ToString() + " " + ((itr + 2) * 3).ToString() + " 0 R>>" + vbLf + ">>" + vbLf + "/Contents [ " + (((itr + 2) * 3) - 1).ToString() + " 0 R ]" + vbLf + ">>" + vbLf + "endobj" + vbLf + ""
         xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
         'refenrece to obj 4,7,10,13,16...
         PDFBytes.Write(stringToBytes(strTmpObj), 0, strTmpObj.Length)
@@ -1302,7 +1302,7 @@ Public Class FCJSPDFGenerator
         PDFBytes.Write(imgBA, 0, imgBA.Length)
 
         'xrefs  compilation
-        xRefList(0) += ((xRefList.Count - 1) + vbLf)
+        xRefList(0) += (Convert.ToString(xRefList.Count - 1) + vbLf)
 
         'get trailer
         Dim trailer As String = getTrailer(CInt(PDFBytes.Length), xRefList.Count - 1)
@@ -1331,7 +1331,7 @@ Public Class FCJSPDFGenerator
 
         Dim width As String = Me._width
         Dim height As String = Me._height
-        Return (Convert.ToString((Convert.ToString((((itr + 2) * 3) - 1) + " 0 obj" & vbLf & "<< /Length " + (24 + (width & height).Length) + " >>" & vbLf & "stream" & vbLf & "q" & vbLf) & width) + " 0 0 ") & height) + " 0 0 cm" & vbLf & "/R" + (itr + 1) + " Do" & vbLf & "Q" & vbLf & "endstream" & vbLf & "endobj" & vbLf
+        Return (((itr + 2) * 3) - 1).ToString() + " 0 obj" + vbLf + "<< /Length " + (24 + (width + height)).ToString().Length.ToString() + " >>" + vbLf + "stream" + vbLf + "q" + vbLf + "" + width.ToString() + " 0 0 " + height.ToString() + " 0 0 cm" + vbLf + "/R" + (itr + 1).ToString() + " Do" + vbLf + "Q" + vbLf + "endstream" + vbLf + "endobj" + vbLf + ""
     End Function
 
     Private Function calculateXPos(posn As Integer) As String
