@@ -1,0 +1,153 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script type="text/javascript" src="http://static.fusioncharts.com/code/latest/fusioncharts.js"></script>
+	<script type="text/javascript" src="http://static.fusioncharts.com/code/latest/fusioncharts.charts.js"></script>	
+	<script type="text/javascript" src="http://static.fusioncharts.com/code/latest/themes/fusioncharts.theme.fint.js"></script>
+	<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+</head>
+<body>
+<!-- Exporting/downloading charts in different formats using FusionCharts Export chart feature. Clicking on the top right button opens the options to choose from.
+
+# exportEnabled - set to 1. Setting this attribute to 1 shows a button at top right corner of the chart canvas and lets user to choose exporting the chart to images/PDFs.
+
+-->
+
+<div id="chart-container">FusionCharts will render here</div>
+<img id="img_scream" width="220" height="277" src="img_the_scream.jpg" style=""/>
+<canvas  id="canvas"  width="250" height="300" style="border:1px solid #000000;"></canvas>
+<button id="btn_clickMe">click me</button>
+<script type="text/javascript">
+    var c = document.getElementById("canvas");
+    var ctx = c.getContext("2d");
+    var img = document.getElementById("img_scream");
+    ctx.drawImage(img, 10, 10);
+    document.getElementById("btn_clickMe").addEventListener('click', function (event) {
+        var imageData = c.toDataURL("image/jpeg");//.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+        jQuery.ajax({
+            url: "FCExporter.aspx",
+            data: {
+                charttype: "column2d",
+                stream: imageData,
+                stream_type: "image-data",
+                meta_bgColor: "#ffffff",
+                meta_bgAlpha: 1,
+                meta_DOMId: "chartobject-1",
+                meta_width: 500,
+                meta_height: 300,
+                parameters: "exportfilename=FusionCharts|exportformat=jpeg|exportaction=download|exportparameters=undefined"
+
+            },
+            type: "POST",
+            success: function (data) {
+                $("body").append("<a style='display:none' id='a_download' download>click dload</a>").promise().done(function () {
+                    $("#a_download").attr('href', "data:text/html;charset=utf-8," + escape(data));
+                    $("#a_download").trigger('click');
+                });
+            }
+        });
+    });
+</script>
+<script type="text/javascript">
+    
+    FusionCharts.ready(function () {
+        var revenueChart = new FusionCharts({
+            type: 'column2d',
+            renderAt: 'chart-container',
+            width: '500',
+            height: '300',
+            dataFormat: 'json',
+            dataSource: {
+                "chart": {
+                    "caption": "Sales figures for top 4 chocolate brands - FY2013-2014",
+                    "subCaption": "Harry's SuperMart",
+                    "xAxisName": "Brand",
+                    "yAxisName": "Amount (In USD)",
+                    "yAxisMaxValue": "120000",
+                    "numberPrefix": "$",
+                    "theme": "fint",
+                    "PlotfillAlpha": "0",
+                    "placeValuesInside": "0",
+                    "rotateValues": "0",
+                    "valueFontColor": "#333333",
+                    "exportEnabled": "1",
+                    "exportHandler": "http://54.235.200.97/",
+                    "exportWithImages": "1"
+                },
+                "annotations": {
+                    "width": "500",
+                    "height": "300",
+                    "autoScale": "1",
+                    "groups": [
+                        {
+                            "id": "user-images",
+                            "xScale_": "20",
+                            "yScale_": "20",
+                            "items": [
+                                {
+                                    "id": "butterFinger-icon",
+                                    "type": "image",
+                                    "url": "butterFinger.png",
+                                    "x": "$xaxis.label.0.x - 30",
+                                    "y": "$canvasEndY - 150",
+                                    "xScale": "50",
+                                    "yScale": "40"
+                                },
+                                {
+                                    "id": "tom-user-icon",
+                                    "type": "image",
+                                    "url": "snickrs.png",
+                                    "x": "$xaxis.label.1.x - 26",
+                                    "y": "$canvasEndY - 141",
+                                    "xScale": "48",
+                                    "yScale": "38"
+                                },
+                                {
+                                    "id": "Milton-user-icon",
+                                    "type": "image",
+                                    "url": "coffee_crisp.png",
+                                    "x": "$xaxis.label.2.x - 22",
+                                    "y": "$canvasEndY - 134",
+                                    "xScale": "43",
+                                    "yScale": "36"
+                                },
+                                {
+                                    "id": "Brian-user-icon",
+                                    "type": "image",
+                                    "url": "100grand.png",
+                                    "x": "$xaxis.label.3.x - 22",
+                                    "y": "$canvasEndY - 131",
+                                    "xScale": "43",
+                                    "yScale": "35"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                "data": [
+                    {
+                        "label": "Butterfinger",
+                        "value": "92000"
+                    },
+                    {
+                        "label": "Snickers",
+                        "value": "87000"
+                    },
+                    {
+                        "label": "Coffee Crisp",
+                        "value": "83000"
+                    },
+                    {
+                        "label": "100 Grand",
+                        "value": "80000"
+                    }
+                ]
+            }
+        });
+
+        revenueChart.render();
+    });
+</script>
+</body>
+</html>
