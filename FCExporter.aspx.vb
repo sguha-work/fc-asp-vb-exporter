@@ -381,7 +381,7 @@ Partial Public Class FCExporter
 
     Private Sub convertRawImageDataToFile(exportData As Hashtable)
         Dim fileName As [String] = ""
-        fileName = Server.MapPath(".") & "\temp\" & exportData("exportfilename").ToString() & "." & exportData("exportformat").ToString().ToLower()
+        fileName = Server.MapPath(".") & SAVE_PATH & exportData("exportfilename").ToString() & "." & exportData("exportformat").ToString().ToLower()
         System.IO.File.WriteAllBytes(fileName, base64Decode(exportData("stream").ToString()))
         Dim data As Byte() = System.IO.File.ReadAllBytes(fileName)
 
