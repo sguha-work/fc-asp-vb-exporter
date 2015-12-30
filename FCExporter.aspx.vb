@@ -66,7 +66,7 @@
 
 '*
 ' * 
-' *   @requires FCIMGGenerator  Class to export FusionCharts image data to JPG, PNG, GIF binary
+' *   @requires	FCIMGGenerator  Class to export FusionCharts image data to JPG, PNG, GIF binary
 ' *   @requires  FCPDFGenerator  Class to export FusionCharts image data to PDF binary
 ' *
 ' 
@@ -93,7 +93,7 @@ Imports System.Web.Script.Serialization
 ''' This script might be called as the FusionCharts Exporter - main module
 ''' </summary>
 ''' 
-Public Partial Class FCExporter
+Partial Public Class FCExporter
     Inherits System.Web.UI.Page
 
 
@@ -182,7 +182,7 @@ Public Partial Class FCExporter
         Get
             Return m_IsSVGData
         End Get
-        Set
+        Set(value As Boolean)
             m_IsSVGData = Value
         End Set
     End Property
@@ -192,7 +192,7 @@ Public Partial Class FCExporter
         Get
             Return m_isImgData
         End Get
-        Set
+        Set(value As Boolean)
             m_isImgData = Value
         End Set
     End Property
@@ -208,6 +208,8 @@ Public Partial Class FCExporter
     ''' </summary>
     Private svgStream As MemoryStream
 
+    Private exportData As Hashtable
+
     ''' <summary>
     ''' The main function that handles all Input - Process - Output of this Export Architecture
     ''' </summary>
@@ -216,18 +218,18 @@ Public Partial Class FCExporter
     Protected Sub Page_Load(sender As Object, e As EventArgs)
 
         '*
-'         * Retrieve export data from POST Request sent by chart
-'         * Parse the Request stream into export data readable by this script
-'         
+        '         * Retrieve export data from POST Request sent by chart
+        '         * Parse the Request stream into export data readable by this script
+        '         
 
-        Dim exportData As Hashtable = parseExportRequestStream()
+        exportData = parseExportRequestStream()
 
         ' process export data and get the processed data (image/PDF) to be exported
         Dim exportObject As MemoryStream = Nothing
 
         If IsSVGData Then
             If exportData("encodedImgData") IsNot Nothing AndAlso exportData("encodedImgData").ToString() <> "" AndAlso DirectCast(exportData("parameters"), Hashtable)("exportformat").ToString() = "svg" Then
-                exportObject = exportProcessor(DirectCast(exportData("parameters"), Hashtable)("exportformat").ToString(), "svg", DirectCast(exportData("parameters"), Hashtable), exportData("encodedImgData").ToString())
+                exportObject = exportProcessor(DirectCast(exportData("parameters"), Hashtable)("exportformat").ToString(), exportData("svg").ToString(), DirectCast(exportData("parameters"), Hashtable), exportData("encodedImgData").ToString())
             Else
                 exportObject = exportProcessor(DirectCast(exportData("parameters"), Hashtable)("exportformat").ToString(), "svg", DirectCast(exportData("parameters"), Hashtable))
 
@@ -245,10 +247,10 @@ Public Partial Class FCExporter
         End If
 
         '
-'         * Send the export binary to output module which would either save to a server directory
-'         * or send the export file to download. Download terminates the process while
-'         * after save the output module sends back export status 
-'         
+        '         * Send the export binary to output module which would either save to a server directory
+        '         * or send the export file to download. Download terminates the process while
+        '         * after save the output module sends back export status 
+        '         
 
         'object exportedStatus = IsSVGData ? outputExportObject(exportObject, exportData) : outputExportObject(exportObject, (Hashtable)exportData["parameters"]);
         Dim exportedStatus As Object = outputExportObject(exportObject, DirectCast(exportData("parameters"), Hashtable))
@@ -258,10 +260,10 @@ Public Partial Class FCExporter
         exportObject.Dispose()
 
         '
-'         * Build Appropriate Export Status and send back to chart by flushing the  
-'         * procesed status to http response. This returns status back to chart. 
-'         * [ This is not applicable when Download action took place ]
-'         
+        '         * Build Appropriate Export Status and send back to chart by flushing the  
+        '         * procesed status to http response. This returns status back to chart. 
+        '         * [ This is not applicable when Download action took place ]
+        '         
 
         flushStatus(exportedStatus, DirectCast(exportData("meta"), Hashtable))
 
@@ -316,9 +318,9 @@ Public Partial Class FCExporter
                 End If
                 exportData("stream") = Request("stream").Trim().Replace(" ", "+")
                 exportData("stream") = exportData("stream").ToString().Substring(exportData("stream").ToString().IndexOf(",") + 1)
-                Dim parametersArray As [String]() = Request("parameters").ToString().Split("|"C)
-                exportData("exportfilename") = parametersArray(0).Split("="C)(1)
-                exportData("exportformat") = parametersArray(1).Split("="C)(1).ToLower()
+                Dim parametersArray As [String]() = Request("parameters").ToString().Split("|"c)
+                exportData("exportfilename") = parametersArray(0).Split("="c)(1)
+                exportData("exportformat") = parametersArray(1).Split("="c)(1).ToLower()
             Else
                 isImgData = False
                 'String of compressed image data
@@ -379,13 +381,13 @@ Public Partial Class FCExporter
 
     Private Sub convertRawImageDataToFile(exportData As Hashtable)
         Dim fileName As [String] = ""
-        fileName = SAVE_PATH + exportData("exportfilename").ToString() + "." + exportData("exportformat").ToString().ToLower()
+        fileName = Server.MapPath(".") & "\temp\" & exportData("exportfilename").ToString() & "." & exportData("exportformat").ToString().ToLower()
         System.IO.File.WriteAllBytes(fileName, base64Decode(exportData("stream").ToString()))
         Dim data As Byte() = System.IO.File.ReadAllBytes(fileName)
 
         Dim mime As String = getMime(exportData("exportformat").ToString())
         Response.ContentType = mime
-        Response.AddHeader("Content-Disposition", "attachment" + "; filename=""" + fileName + "." + exportData("exportformat").ToString().ToLower() + """")
+        Response.AddHeader("Content-Disposition", "attachment" & "; filename=""" & fileName & "." & exportData("exportformat").ToString().ToLower() & """")
 
         Dim retStatus As New Hashtable()
         retStatus("filepath") = ""
@@ -411,7 +413,7 @@ Public Partial Class FCExporter
         Dim defaultParameterValues As Hashtable = bang(DEFAULTPARAMS)
 
         ' get parameters
-        Dim parameters As Hashtable = bang(strParams, New Char() {"|"C, "="C})
+        Dim parameters As Hashtable = bang(strParams, New Char() {"|"c, "="c})
 
         ' sync with default values
         ' iterate through each default parameter value
@@ -445,31 +447,47 @@ Public Partial Class FCExporter
     Private Function getImageData(imageData As Dictionary(Of String, Dictionary(Of String, String)), imageName As String) As String
         Dim data As String = ""
         For Each key As String In imageData.Keys
-            If (imageData(key)("name") + "." + imageData(key)("type")) = imageName Then
+            If (imageData(key)("name") & "." & imageData(key)("type")) = imageName Then
                 data = imageData(key)("encodedData")
                 Exit For
             End If
         Next
-        
+
 
         Return data
     End Function
-    Private Function stichImageToSVG(svgData As String, imageData As String) As MemoryStream
+    Private Function stichImageToSVG(svgData As String, imageData As String) As String
         Dim ser As New JavaScriptSerializer()
         Dim data = ser.Deserialize(Of Dictionary(Of String, Dictionary(Of String, String)))(imageData)
 
         Dim rawImageDataArray As New List(Of String)()
         Dim hrefArray As New List(Of String)()
 
-        For Each match As Match In Regex.Matches(svgData, "/(<image[^>]*xlink:href *= *[""']?)([^""']*)/i")
-            hrefArray.Add(match.Value)
-            Dim imageNameArray As String() = match.Value.Split("/"C)
+        ' /(<image[^>]*xlink:href *= *[\"']?)([^\"']*)/i
+        Dim regex As New Regex("<image.+?xlink:href=""(.+?)"".+?/?>")
+        Dim counter As Integer = 0
+        For Each match As Match In regex.Matches(svgData)
+            Dim temp1 As String() = match.Value.Split(New String() {"xlink:href="}, StringSplitOptions.None)
+            hrefArray.Add(temp1(1).Split(""""c)(1))
+            Dim imageNameArray As String() = hrefArray(counter).Split("/"c)
             rawImageDataArray.Add(getImageData(data, imageNameArray(imageNameArray.Length - 1)))
+            counter += 1
         Next
-        For index As Long = 0 To rawImageDataArray.Count - 1
+        For index As Integer = 0 To rawImageDataArray.Count - 1
             svgData = svgData.Replace(hrefArray(index), rawImageDataArray(index))
         Next
 
+        Return svgData
+    End Function
+
+    Private Function stichImageToSVGAndGetString(svgData As String, imageData As String) As String
+
+        Return stichImageToSVG(svgData, imageData)
+    End Function
+
+    Private Function stichImageToSVGAndGetStream(svgData As String, imageData As String) As MemoryStream
+
+        svgData = stichImageToSVG(svgData, imageData)
         Dim svg As Byte() = System.Text.Encoding.UTF8.GetBytes(svgData.ToString())
         Return New MemoryStream(svg)
     End Function
@@ -483,10 +501,13 @@ Public Partial Class FCExporter
     ''' <returns></returns>
 
     Private Function exportProcessor(strFormat As String, stream As String, meta As Hashtable, imageData As String) As MemoryStream
-        Return stichImageToSVG(strFormat, imageData)
+        Return stichImageToSVGAndGetStream(stream, imageData)
     End Function
     Private Function exportProcessor(strFormat As String, stream As String, meta As Hashtable) As MemoryStream
-
+        If exportData("encodedImgData") IsNot Nothing AndAlso exportData("encodedImgData").ToString() <> "" Then
+            svgStream = stichImageToSVGAndGetStream(exportData("svg").ToString(), exportData("encodedImgData").ToString())
+            svgData = New StringReader(stichImageToSVGAndGetString(exportData("svg").ToString(), exportData("encodedImgData").ToString()))
+        End If
         strFormat = strFormat.ToLower()
         ' initilize memeory stream object to store output bytes
         Dim exportObjectStream As New MemoryStream()
@@ -607,10 +628,10 @@ Public Partial Class FCExporter
                 outStream.Close()
                 exportObj.Close()
             Catch e As ArgumentNullException
-                raise_error(" Failed to export. Error:" + e.Message)
+                raise_error(" Failed to export. Error:" & e.Message)
                 status = False
             Catch e As ObjectDisposedException
-                raise_error(" Failed to export. Error:" + e.Message)
+                raise_error(" Failed to export. Error:" & e.Message)
                 status = False
             End Try
 
@@ -676,27 +697,27 @@ Public Partial Class FCExporter
 
         ' add notices 
         If notices.Trim() <> "" Then
-            arrStatus.Add("notice=" + notices.Trim())
+            arrStatus.Add("notice=" & notices.Trim())
         End If
 
         ' DOMId of the chart
-        arrStatus.Add(Convert.ToString("DOMId=") & (If(meta("DOMId") Is Nothing, DOMId, meta("DOMId").ToString())))
+        arrStatus.Add("DOMId=" & (If(meta("DOMId") Is Nothing, DOMId, meta("DOMId").ToString())))
 
         ' add width and height
-        ' provide 0 as width and height on failure  
+        ' provide 0 as width and height on failure	
         If meta("width") Is Nothing Then
             meta("width") = "0"
         End If
         If meta("height") Is Nothing Then
             meta("height") = "0"
         End If
-        arrStatus.Add("height=" + (If(status, meta("height").ToString(), "0")))
-        arrStatus.Add("width=" + (If(status, meta("width").ToString(), "0")))
+        arrStatus.Add("height=" & (If(status, meta("height").ToString(), "0")))
+        arrStatus.Add("width=" & (If(status, meta("width").ToString(), "0")))
 
         ' add file URI
-        arrStatus.Add("fileName=" + (If(status, (Regex.Replace(HTTP_URI, "([^\/]$)", "${1}/") + filename), "")))
-        arrStatus.Add("statusMessage=" + (If(msg.Trim() <> "", msg.Trim(), (If(status, "Success", "Failure")))))
-        arrStatus.Add("statusCode=" + (If(status, "1", "0")))
+        arrStatus.Add("fileName=" & (If(status, (Regex.Replace(HTTP_URI, "([^\/]$)", "${1}/") & Convert.ToString(filename)), "")))
+        arrStatus.Add("statusMessage=" & (If(msg.Trim() <> "", msg.Trim(), (If(status, "Success", "Failure")))))
+        arrStatus.Add("statusCode=" & (If(status, "1", "0")))
 
         Return arrStatus
 
@@ -777,7 +798,7 @@ Public Partial Class FCExporter
         Dim dirWritable As Boolean = isDirectoryWritable(path)
 
         ' build filepath
-        retServerStatus("filepath") = Convert.ToString(exportFile & Convert.ToString(".")) & ext
+        retServerStatus("filepath") = exportFile & "." & ext
 
         ' check whether file exists
         If Not File.Exists(path & retServerStatus("filepath").ToString()) Then
@@ -828,8 +849,8 @@ Public Partial Class FCExporter
         raise_error(" Using intelligent naming of file by adding an unique suffix to the exising name.")
         ' Intelligent naming 
         ' generate new filename with additional suffix
-        exportFile = Convert.ToString(exportFile & Convert.ToString("_")) & generateIntelligentFileId()
-        retServerStatus("filepath") = Convert.ToString(exportFile & Convert.ToString(".")) & ext
+        exportFile = exportFile & "_" & generateIntelligentFileId()
+        retServerStatus("filepath") = exportFile & "." & ext
 
         ' return intelligent file name with ready flag
         ' need to check whether the directory is writable to create a new file  
@@ -838,7 +859,7 @@ Public Partial Class FCExporter
             ' add new filename notice
             ' open the output file in FileStream
             ' set the output stream to the FileStream object
-            raise_error(" The filename has changed to " + retServerStatus("filepath").ToString() + ".")
+            raise_error(" The filename has changed to " & retServerStatus("filepath").ToString() & ".")
             fos = File.Open(path & retServerStatus("filepath").ToString(), FileMode.Create, FileAccess.Write)
 
             ' set the output stream to the FileStream object
@@ -849,7 +870,7 @@ Public Partial Class FCExporter
             raise_error("403", True)
         End If
 
-        ' in any unknown case the export should not execute 
+        ' in any unknown case the export should not execute	
         retServerStatus("ready") = False
         raise_error(" Not exported due to unknown reasons.")
         Return retServerStatus
@@ -878,7 +899,7 @@ Public Partial Class FCExporter
         ' when target is _self the type is 'attachment'
         ' when target is other than self type is 'inline'
         ' NOTE : you can comment this line in order to replace present window (_self) content with the image/PDF  
-        Response.AddHeader("Content-Disposition", (Convert.ToString((Convert.ToString((If(target = "_self", "attachment", "inline")) + "; filename=""") & exportFile) + ".") & ext) + """")
+        Response.AddHeader("Content-Disposition", (If(target = "_self", "attachment", "inline")) & "; filename=""" & exportFile & "." & ext & """")
 
         ' return exportSetting array. 'Ready' key should be set to 'download'
         Dim retStatus As New Hashtable()
@@ -931,10 +952,10 @@ Public Partial Class FCExporter
         ' check FILESUFFIXFORMAT type 
         If FILESUFFIXFORMAT.ToLower() = "timestamp" Then
             ' Add time stamp with file name
-            guid += "_" + DateTime.Now.ToString("ddMMyyyyHHmmssff")
+            guid += "_" & DateTime.Now.ToString("ddMMyyyyHHmmssff")
         Else
             ' Add Random Number with fileName
-            guid += "_" + (New Random()).[Next]().ToString()
+            guid += "_" & (New Random()).[Next]().ToString()
         End If
 
         Return guid
@@ -973,7 +994,7 @@ Public Partial Class FCExporter
 
     End Function
     Private Function bang(str As String) As Hashtable
-        Return bang(str, New Char(1) {";"C, "="C})
+        Return bang(str, New Char(1) {";"c, "="c})
     End Function
     Private Sub raise_error(msg As String)
         raise_error(msg, False)
@@ -1107,20 +1128,20 @@ Public Class FCIMGGenerator
         Dim gr As Graphics = Graphics.FromImage(image)
 
         ' set background color
-        gr.Clear(ColorTranslator.FromHtml("#" + rawImageData("bgcolor").ToString()))
+        gr.Clear(ColorTranslator.FromHtml("#" & rawImageData("bgcolor").ToString()))
 
-        Dim rows As String() = rawImageData("imagedata").ToString().Split(";"C)
+        Dim rows As String() = rawImageData("imagedata").ToString().Split(";"c)
 
         For yPixel As Integer = 0 To rows.Length - 1
-            'Split each row into 'color_count' columns.         
-            Dim color_count As [String]() = rows(yPixel).Split(","C)
+            'Split each row into 'color_count' columns.			
+            Dim color_count As [String]() = rows(yPixel).Split(","c)
             'Set horizontal row index to 0
             Dim xPixel As Integer = 0
 
             For col As Integer = 0 To color_count.Length - 1
-                'Now, if it's not empty, we process it              
+                'Now, if it's not empty, we process it				
                 'Split the 'color_count' into color and repeat factor
-                Dim split_data As [String]() = color_count(col).Split("_"C)
+                Dim split_data As [String]() = color_count(col).Split("_"c)
 
                 'Reference to color
                 Dim hexColor As String = split_data(0)
@@ -1130,11 +1151,11 @@ Public Class FCIMGGenerator
                 'If color is not empty (i.e. not background pixel)
                 If hexColor <> "" Then
                     'If the hexadecimal code is less than 6 characters, pad with 0
-                    hexColor = If(hexColor.Length < 6, hexColor.PadLeft(6, "0"C), hexColor)
+                    hexColor = If(hexColor.Length < 6, hexColor.PadLeft(6, "0"c), hexColor)
                     For k As Integer = 1 To fRepeat
 
                         'draw pixel with specified color
-                        image.SetPixel(xPixel, yPixel, ColorTranslator.FromHtml(Convert.ToString("#") & hexColor))
+                        image.SetPixel(xPixel, yPixel, ColorTranslator.FromHtml("#" & hexColor))
                         'Increment horizontal row count
                         xPixel += 1
                     Next
@@ -1227,7 +1248,7 @@ Public Class FCJSPDFGenerator
         'Build PDF object containing the image binary and other formats required
         'string strImgObjHead = imgObjNo.ToString() + " 0 obj\n<<\n/Subtype /Image /ColorSpace /DeviceRGB /BitsPerComponent 8 /HDPI 72 /VDPI 72 " + (isCompressed ? "" : "") + "/Width " + width + " /Height " + height + " /Length " + len.ToString() + " >>\nstream\n";
         ' Use it for JPG.
-        Dim strImgObjHead As String = (Convert.ToString((Convert.ToString(imgObjNo.ToString() + " 0 obj" & vbLf & "<<" & vbLf & "/Subtype /Image /Filter /DCTDecode /ColorSpace /DeviceRGB /BitsPerComponent 8 /Width ") & width) + " /Height ") & height) + " /Length " + len.ToString() + " >>" & vbLf & "stream" & vbLf
+        Dim strImgObjHead As String = imgObjNo.ToString() & " 0 obj" & vbLf & "<<" & vbLf & "/Subtype /Image /Filter /DCTDecode /ColorSpace /DeviceRGB /BitsPerComponent 8 /Width " & width & " /Height " & height & " /Length " & len.ToString() & " >>" & vbLf & "stream" & vbLf
 
         imgObj.Write(stringToBytes(strImgObjHead), 0, strImgObjHead.Length)
         imgObj.Write(imgBinary, 0, CInt(imgBinary.Length))
@@ -1271,9 +1292,9 @@ Public Class FCJSPDFGenerator
         'OBJECT 3 : Page Tree (reference to pages of the catalogue)
         strTmpObj = "3 0 obj" & vbLf & "<<  /Type /Pages /Kids ["
         For i As Integer = 0 To numPages - 1
-            strTmpObj += Convert.ToString(((i + 1) * 3) + 1) + " 0 R" & vbLf
+            strTmpObj += (((i + 1) * 3) + 1) & " 0 R" & vbLf
         Next
-        strTmpObj += "] /Count " + Convert.ToString(numPages) + " >>" & vbLf & "endobj" & vbLf
+        strTmpObj += "] /Count " & numPages & " >>" & vbLf & "endobj" & vbLf
 
         xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
         'refenrece to obj 3
@@ -1284,7 +1305,7 @@ Public Class FCJSPDFGenerator
         Dim iHeight As String = Me._height
 
         'OBJECT 4..7..10..n : Page config
-        strTmpObj = (((itr + 2) * 3) - 2).ToString() + " 0 obj" + vbLf + "<<" + vbLf + "/Type /Page /Parent 3 0 R " + vbLf + "/MediaBox [ 0 0 " + iWidth.ToString() + " " + iHeight.ToString() + " ]" + vbLf + "/Resources <<" + vbLf + "/ProcSet [ /PDF ]" + vbLf + "/XObject <</R" + (itr + 1).ToString() + " " + ((itr + 2) * 3).ToString() + " 0 R>>" + vbLf + ">>" + vbLf + "/Contents [ " + (((itr + 2) * 3) - 1).ToString() + " 0 R ]" + vbLf + ">>" + vbLf + "endobj" + vbLf + ""
+        strTmpObj = (((itr + 2) * 3) - 2) & " 0 obj" & vbLf & "<<" & vbLf & "/Type /Page /Parent 3 0 R " & vbLf & "/MediaBox [ 0 0 " & iWidth & " " & iHeight & " ]" & vbLf & "/Resources <<" & vbLf & "/ProcSet [ /PDF ]" & vbLf & "/XObject <</R" & (itr + 1) & " " & ((itr + 2) * 3) & " 0 R>>" & vbLf & ">>" & vbLf & "/Contents [ " & (((itr + 2) * 3) - 1) & " 0 R ]" & vbLf & ">>" & vbLf & "endobj" & vbLf
         xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
         'refenrece to obj 4,7,10,13,16...
         PDFBytes.Write(stringToBytes(strTmpObj), 0, strTmpObj.Length)
@@ -1301,8 +1322,8 @@ Public Class FCJSPDFGenerator
         'refenrece to obj 6,9,12,15,18...
         PDFBytes.Write(imgBA, 0, imgBA.Length)
 
-        'xrefs  compilation
-        xRefList(0) += (Convert.ToString(xRefList.Count - 1) + vbLf)
+        'xrefs	compilation
+        xRefList(0) += ((xRefList.Count - 1) & vbLf)
 
         'get trailer
         Dim trailer As String = getTrailer(CInt(PDFBytes.Length), xRefList.Count - 1)
@@ -1331,11 +1352,11 @@ Public Class FCJSPDFGenerator
 
         Dim width As String = Me._width
         Dim height As String = Me._height
-        Return (((itr + 2) * 3) - 1).ToString() + " 0 obj" + vbLf + "<< /Length " + (24 + (width + height)).ToString().Length.ToString() + " >>" + vbLf + "stream" + vbLf + "q" + vbLf + "" + width.ToString() + " 0 0 " + height.ToString() + " 0 0 cm" + vbLf + "/R" + (itr + 1).ToString() + " Do" + vbLf + "Q" + vbLf + "endstream" + vbLf + "endobj" + vbLf + ""
+        Return (((itr + 2) * 3) - 1) & " 0 obj" & vbLf & "<< /Length " & (24 + (width & height).Length) & " >>" & vbLf & "stream" & vbLf & "q" & vbLf & width & " 0 0 " & height & " 0 0 cm" & vbLf & "/R" & (itr + 1) & " Do" & vbLf & "Q" & vbLf & "endstream" & vbLf & "endobj" & vbLf
     End Function
 
     Private Function calculateXPos(posn As Integer) As String
-        Return posn.ToString().PadLeft(10, "0"C) + " 00000 n " & vbLf
+        Return posn.ToString().PadLeft(10, "0"c) & " 00000 n " & vbLf
     End Function
 
 
@@ -1344,7 +1365,7 @@ Public Class FCJSPDFGenerator
     End Function
 
     Private Function getTrailer(xrefpos As Integer, numxref As Integer) As String
-        Return "trailer" & vbLf & "<<" & vbLf & "/Size " + numxref.ToString() + vbLf & "/Root 2 0 R" & vbLf & "/Info 1 0 R" & vbLf & ">>" & vbLf & "startxref" & vbLf + xrefpos.ToString() + vbLf
+        Return "trailer" & vbLf & "<<" & vbLf & "/Size " & numxref.ToString() & vbLf & "/Root 2 0 R" & vbLf & "/Info 1 0 R" & vbLf & ">>" & vbLf & "startxref" & vbLf & xrefpos.ToString() & vbLf
     End Function
 
 
@@ -1363,10 +1384,10 @@ Public Class FCJSPDFGenerator
         End If
         strHex = Regex.Replace(strHex, "[^0-9a-fA-f]", "")
         If strHex.Length Mod 2 <> 0 Then
-            strHex = Convert.ToString("0") & strHex
+            strHex = "0" & strHex
         End If
 
-        Dim len As Integer = strHex.Length / 2
+        Dim len As Integer = strHex.Length \ 2
         Dim bytes As Byte() = New Byte(len - 1) {}
 
         For i As Integer = 0 To len - 1
@@ -1459,7 +1480,7 @@ Public Class FCPDFGenerator
 
         'Build PDF object containing the image binary and other formats required
         'string strImgObjHead = imgObjNo.ToString() + " 0 obj\n<<\n/Subtype /Image /ColorSpace /DeviceRGB /BitsPerComponent 8 /HDPI 72 /VDPI 72 " + (isCompressed ? "" : "") + "/Width " + width + " /Height " + height + " /Length " + len.ToString() + " >>\nstream\n";
-        Dim strImgObjHead As String = (Convert.ToString((Convert.ToString(imgObjNo.ToString() + " 0 obj" & vbLf & "<<" & vbLf & "/Subtype /Image /ColorSpace /DeviceRGB /BitsPerComponent 8 /HDPI 72 /VDPI 72 " + (If(isCompressed, "/Filter /RunLengthDecode ", "")) + "/Width ") & width) + " /Height ") & height) + " /Length " + len.ToString() + " >>" & vbLf & "stream" & vbLf
+        Dim strImgObjHead As String = imgObjNo.ToString() & " 0 obj" & vbLf & "<<" & vbLf & "/Subtype /Image /ColorSpace /DeviceRGB /BitsPerComponent 8 /HDPI 72 /VDPI 72 " & (If(isCompressed, "/Filter /RunLengthDecode ", "")) & "/Width " & width & " /Height " & height & " /Length " & len.ToString() & " >>" & vbLf & "stream" & vbLf
 
 
 
@@ -1519,9 +1540,9 @@ Public Class FCPDFGenerator
         'OBJECT 3 : Page Tree (reference to pages of the catalogue)
         strTmpObj = "3 0 obj" & vbLf & "<<  /Type /Pages /Kids ["
         For i As Integer = 0 To numPages - 1
-            strTmpObj += (((i + 1) * 3) + 1) + " 0 R" & vbLf
+            strTmpObj += (((i + 1) * 3) + 1) & " 0 R" & vbLf
         Next
-        strTmpObj += "] /Count " + numPages + " >>" & vbLf & "endobj" & vbLf
+        strTmpObj += "] /Count " & numPages & " >>" & vbLf & "endobj" & vbLf
 
         xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
         'refenrece to obj 3
@@ -1533,7 +1554,7 @@ Public Class FCPDFGenerator
             Dim iWidth As String = getMeta("width", itr)
             Dim iHeight As String = getMeta("height", itr)
             'OBJECT 4..7..10..n : Page config
-            strTmpObj = (Convert.ToString((Convert.ToString((((itr + 2) * 3) - 2) + " 0 obj" & vbLf & "<<" & vbLf & "/Type /Page /Parent 3 0 R " & vbLf & "/MediaBox [ 0 0 ") & iWidth) + " ") & iHeight) + " ]" & vbLf & "/Resources <<" & vbLf & "/ProcSet [ /PDF ]" & vbLf & "/XObject <</R" + (itr + 1) + " " + ((itr + 2) * 3) + " 0 R>>" & vbLf & ">>" & vbLf & "/Contents [ " + (((itr + 2) * 3) - 1) + " 0 R ]" & vbLf & ">>" & vbLf & "endobj" & vbLf
+            strTmpObj = (((itr + 2) * 3) - 2) & " 0 obj" & vbLf & "<<" & vbLf & "/Type /Page /Parent 3 0 R " & vbLf & "/MediaBox [ 0 0 " & iWidth & " " & iHeight & " ]" & vbLf & "/Resources <<" & vbLf & "/ProcSet [ /PDF ]" & vbLf & "/XObject <</R" & (itr + 1) & " " & ((itr + 2) * 3) & " 0 R>>" & vbLf & ">>" & vbLf & "/Contents [ " & (((itr + 2) * 3) - 1) & " 0 R ]" & vbLf & ">>" & vbLf & "endobj" & vbLf
             xRefList.Add(calculateXPos(CInt(PDFBytes.Length)))
             'refenrece to obj 4,7,10,13,16...
             PDFBytes.Write(stringToBytes(strTmpObj), 0, strTmpObj.Length)
@@ -1552,8 +1573,8 @@ Public Class FCPDFGenerator
             PDFBytes.Write(imgBA, 0, imgBA.Length)
         Next
 
-        'xrefs  compilation
-        xRefList(0) += ((xRefList.Count - 1) + vbLf)
+        'xrefs	compilation
+        xRefList(0) += ((xRefList.Count - 1) & vbLf)
 
         'get trailer
         Dim trailer As String = getTrailer(CInt(PDFBytes.Length), xRefList.Count - 1)
@@ -1582,11 +1603,11 @@ Public Class FCPDFGenerator
 
         Dim width As String = getMeta("width", itr)
         Dim height As String = getMeta("height", itr)
-        Return (Convert.ToString((Convert.ToString((((itr + 2) * 3) - 1) + " 0 obj" & vbLf & "<< /Length " + (24 + (width & height).Length) + " >>" & vbLf & "stream" & vbLf & "q" & vbLf) & width) + " 0 0 ") & height) + " 0 0 cm" & vbLf & "/R" + (itr + 1) + " Do" & vbLf & "Q" & vbLf & "endstream" & vbLf & "endobj" & vbLf
+        Return (((itr + 2) * 3) - 1) & " 0 obj" & vbLf & "<< /Length " & (24 + (width & height).Length) & " >>" & vbLf & "stream" & vbLf & "q" & vbLf & width & " 0 0 " & height & " 0 0 cm" & vbLf & "/R" & (itr + 1) & " Do" & vbLf & "Q" & vbLf & "endstream" & vbLf & "endobj" & vbLf
     End Function
 
     Private Function calculateXPos(posn As Integer) As String
-        Return posn.ToString().PadLeft(10, "0"C) + " 00000 n " & vbLf
+        Return posn.ToString().PadLeft(10, "0"c) & " 00000 n " & vbLf
     End Function
 
 
@@ -1595,7 +1616,7 @@ Public Class FCPDFGenerator
     End Function
 
     Private Function getTrailer(xrefpos As Integer, numxref As Integer) As String
-        Return "trailer" & vbLf & "<<" & vbLf & "/Size " + numxref.ToString() + vbLf & "/Root 2 0 R" & vbLf & "/Info 1 0 R" & vbLf & ">>" & vbLf & "startxref" & vbLf + xrefpos.ToString() + vbLf
+        Return "trailer" & vbLf & "<<" & vbLf & "/Size " & numxref.ToString() & vbLf & "/Root 2 0 R" & vbLf & "/Info 1 0 R" & vbLf & ">>" & vbLf & "startxref" & vbLf & xrefpos.ToString() & vbLf
     End Function
 
 
@@ -1610,21 +1631,21 @@ Public Class FCPDFGenerator
         Dim imageData24 As New MemoryStream()
 
         ' Split the data into rows using ; as separator
-        Dim rows As String() = rawImageData.Split(";"C)
+        Dim rows As String() = rawImageData.Split(";"c)
 
         For yPixel As Integer = 0 To rows.Length - 1
-            'Split each row into 'color_count' columns.         
-            Dim color_count As String() = rows(yPixel).Split(","C)
+            'Split each row into 'color_count' columns.			
+            Dim color_count As String() = rows(yPixel).Split(","c)
 
             For col As Integer = 0 To color_count.Length - 1
-                'Now, if it's not empty, we process it              
+                'Now, if it's not empty, we process it				
                 'Split the 'color_count' into color and repeat factor
-                Dim split_data As String() = color_count(col).Split("_"C)
+                Dim split_data As String() = color_count(col).Split("_"c)
 
                 'Reference to color
                 Dim hexColor As String = If(split_data(0) <> "", split_data(0), bgColor)
                 'If the hexadecimal code is less than 6 characters, pad with 0
-                hexColor = If(hexColor.Length < 6, hexColor.PadLeft(6, "0"C), hexColor)
+                hexColor = If(hexColor.Length < 6, hexColor.PadLeft(6, "0"c), hexColor)
 
                 'refer to repeat factor
                 Dim fRepeat As Integer = Integer.Parse(split_data(1))
@@ -1658,10 +1679,10 @@ Public Class FCPDFGenerator
         End If
         strHex = Regex.Replace(strHex, "[^0-9a-fA-f]", "")
         If strHex.Length Mod 2 <> 0 Then
-            strHex = Convert.ToString("0") & strHex
+            strHex = "0" & strHex
         End If
 
-        Dim len As Integer = strHex.Length / 2
+        Dim len As Integer = strHex.Length \ 2
         Dim bytes As Byte() = New Byte(len - 1) {}
 
         For i As Integer = 0 To len - 1
